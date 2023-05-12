@@ -1,4 +1,6 @@
 # Paint-App-PYTHON
+NOTA IMPORTANTE: Instalar las librerías “tkinter” y “PIL” del lenguaje de programación “Python” para que el programa ejecute sin problemas.
+
 En este proyecto, nosotros desarrollamos un programa que permite crear, rellenar 
 y manipular diversas figuras geométricas, en las que aplicamos diversos métodos y 
 algoritmos matemáticos para lograr la creación de objetos a creatividad del usuario. 
