@@ -1,0 +1,1798 @@
+import tkinter
+from tkinter import *
+from tkinter.colorchooser import *
+from PIL import Image, ImageTk, ImageDraw
+import copy
+import math
+from tkinter import filedialog
+import os
+
+
+
+class Paint(object):
+    #variables Globales
+    DEFAULT_COLOR = (0,0,0)
+    DEFAULT_BUTTON=None
+    lx=None
+    ly=None
+    px=None
+    py=None
+    x=0
+    anchoCanvas= 600
+    altoCanvas= 500
+    fondoCanvas= (255,255,255)
+    area1=None
+    area2=None
+  
+
+
+    def __init__(self):
+        #se cre la pantalla inicial
+        self.root = Tk()
+        self.root.wm_title("Paint" )
+        #se crean las variables del espejo
+        self.espejoy = tkinter.BooleanVar(False)
+        self.espejox= tkinter.BooleanVar(False)
+        #se crea la barra de menu Archivo y Ayuda
+        menubar1 = tkinter.Menu(self.root)
+        self.root.config(menu=menubar1)
+        opciones1 = tkinter.Menu(menubar1)
+        opciones1.add_command(label="Nuevo", command=self.new)
+        opciones1.add_command(label="Abrir", command=self.abrir)
+        opciones1.add_command(label="Guardar", command=self.save)
+        menubar1.add_cascade(label="Archivo", menu=opciones1)
+
+        opciones2 = tkinter.Menu(self.root)
+        opciones2.add_command(label="Instruciones", command=self.instruciones)
+        menubar1.add_cascade(label="Ayuda",menu=opciones2)
+        #se crea los botones de la pagina principal
+        #botones de la secion de transformaciones
+        self.select_button = Button(self.root, text='Selecionar', command=self.select,cursor="hand2")
+        self.select_button.grid(row=0, column=0)
+
+        self.translate_button = Button(self.root, text='Trasladar', command=self.translate,cursor="hand2")
+        self.translate_button.grid(row=0, column=1)
+
+        self.scale_button = Button(self.root, text='Escalar', command=self.escalate,cursor="hand2")
+        self.scale_button.grid(row=0, column=2)
+
+        self.rotate_button = Button(self.root, text='Rotar', command=self.rotate,cursor="hand2")
+        self.rotate_button.grid(row=0, column=3)
+
+        self.mirror_button = Button(self.root, text='Espejo', command=self.espejo,cursor="hand2")
+        self.mirror_button.grid(row=0, column=6)
+        
+        self.cut_button = Button(self.root, text='Cortar', command=self.cortar,cursor="hand2")
+        self.cut_button.grid(row=0, column=4)
+
+        self.duplicar_button = Button(self.root, text='Duplicar', command=self.dublpic,cursor="hand2")
+        self.duplicar_button.grid(row=0, column=5)
+        #Botones de la secion DDA
+        DDA=Label(self.root,text="DDA")
+        DDA.grid(row=1,column=0)
+        
+
+        self.line_button = Button(self.root, text='Linea', command=self.use_line,cursor="hand2")
+        self.line_button.grid(row=1, column=1)
+
+        self.poligon_button = Button(self.root, text='Poligono', command=self.use_poligono,cursor="hand2")
+        self.poligon_button.grid(row=1, column=2)
+
+        self.triangle_button = Button(self.root, text='Triangulo', command=self.use_triangulo,cursor="hand2")
+        self.triangle_button.grid(row=1, column=3)
+
+        self.square_button = Button(self.root, text='Cuadrado', command=self.use_cuadrado,cursor="hand2")
+        self.square_button.grid(row=1, column=4)
+
+        self.circle_button = Button(self.root, text='Círculo', command=self.use_circulo,cursor="hand2")
+        self.circle_button.grid(row=1, column=5)
+
+        self.elipse_button = Button(self.root, text='Elipse', command=self.use_elipse,cursor="hand2")
+        self.elipse_button.grid(row=1, column=6)
+        
+        #Cordenadas del mouse
+        self.labelx=Label(self.root, text="x:0 ",width=5)
+        self.labelx.grid(row=1, column=9)
+        self.labely=Label(self.root, text="y:0",width=5)
+        self.labely.grid(row=2, column=9)
+        #Botones de la secion Bresenham
+        Bresenham=Label(self.root,text="Bresenham")
+        Bresenham.grid(row=2,column=0)
+
+        self.linebre_button = Button(self.root, text='Linea ', command=self.use_linebre,cursor="hand2")
+        self.linebre_button.grid(row=2, column=1)
+
+        self.poligonbre_button = Button(self.root, text='Poligono', command=self.use_poligonobre,cursor="hand2")
+        self.poligonbre_button.grid(row=2, column=2)
+
+        self.trianglebre_button = Button(self.root, text='Triangulo', command=self.use_triangulobre,cursor="hand2")
+        self.trianglebre_button.grid(row=2, column=3)
+
+        self.squarebre_button = Button(self.root, text='Cuadrado', command=self.use_cuadradobre,cursor="hand2")
+        self.squarebre_button.grid(row=2, column=4)
+
+        self.circlebre_button = Button(self.root, text='Círculo', command=self.use_circulobre,cursor="hand2")
+        self.circlebre_button.grid(row=2, column=5)
+
+        self.pen_button = Button(self.root, text="Lapiz", command=self.use_pen,cursor="hand2")
+        self.pen_button.grid(row=3, column=0)
+
+        self.eraser_button = Button(self.root, text='Borrador', command=self.use_eraser,cursor="hand2")
+        self.eraser_button.grid(row=3, column=1)
+
+        self.cordenadas_button = Button(self.root, text='Cordenadas', command=self.choose_cordenadas,cursor="hand2")
+        self.cordenadas_button.grid(row=3, column=2)
+
+        self.color_button = Button(self.root, text='Color', command=self.choose_color,cursor="hand2")
+        self.color_button.grid(row=3, column=4)
+
+        self.fill_button = Button(self.root, text='Rellenar', command=self.rellenar_figura,cursor="hand2")
+        self.fill_button.grid(row=3, column=3)
+        # se crea canvas para mostrar los dibujos
+        self.c = Canvas(self.root, bg='white', width=self.anchoCanvas, height=self.altoCanvas,cursor="crosshair")
+        self.c.grid(row=4,column=0,columnspan=10)
+
+        #se crea img para guardar los dibujas
+        self.img = Image.new("RGB", (self.anchoCanvas, self.altoCanvas), self.fondoCanvas)
+
+        self.c.img = ImageTk.PhotoImage(self.img)
+        self.c.create_image(0, 0, image=self.c.img)
+
+        self.paper = Image.new("RGB", (self.anchoCanvas,self.altoCanvas), self.fondoCanvas)
+        self.usePaper = ImageTk.PhotoImage(self.paper)
+        
+        self.bordeselect = Image.new("RGB", (self.anchoCanvas,self.altoCanvas), self.fondoCanvas)
+        self.useborder= ImageTk.PhotoImage(self.bordeselect)
+        
+        self.color = self.DEFAULT_COLOR
+        #se activa el lapis como la acion default
+        if self.DEFAULT_BUTTON==None:
+            self.active_button = self.pen_button
+            self.activate_button(self.pen_button)
+            self.use_pen()
+            self.DEFAULT_BUTTON="pen"
+        self.c.bind('<Motion>', self.lable)
+        self.root.mainloop()
+    #basia el paint para comensar de nuevo 
+    def new(self):
+        #borra valores guardados
+        self.x=0
+        self.deselecionar()
+        self.deten()
+        self.detenbre()
+        #borra el contenido del canvas y del image
+        self.c.delete("all")
+        self.img = Image.new("RGB", (self.anchoCanvas, self.altoCanvas), self.fondoCanvas)
+        self.c.img = ImageTk.PhotoImage(self.img)
+        self.c.create_image(0, 0, image=self.c.img)
+        self.paper = Image.new("RGB", (self.anchoCanvas,self.altoCanvas), self.fondoCanvas)
+        self.usePaper = ImageTk.PhotoImage(self.paper)
+    #abrir una image al paint
+    def abrir(self):
+        #se seleciona la imagen a abrir
+        filename= filedialog.askopenfilename(defaultextension='.jpg', filetypes = (("jpeg files",".jpg"),("all files",".*")))
+        #se verifica si se elegio algo
+        if filename and filename.is_file():
+            #se abre la image y se le cambia el tamaño
+            self.imagendepruebasss = Image.open(filename).resize((self.anchoCanvas, self.altoCanvas),Image.ANTIALIAS) 
+            self.paper.paste(self.imagendepruebasss, box=(0,0,self.anchoCanvas,self.altoCanvas))
+            self.imagenfinal3 = ImageTk.PhotoImage(self.paper)
+            #se pega al canvas
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.imagenfinal3)
+    #salvar la imagen del canvas
+    def save(self):
+        #se seleciona direcion andonde guardar y como se llamara el archivo
+        filename= filedialog.asksaveasfilename(defaultextension='.jpg', filetypes = (("jpeg files","*.jpg"),("all files","*.*")))
+        if filename:
+            #se guarda la imagen
+            self.paper.save(filename)
+    #abre una ventana con las instruciones del paint
+    def instruciones(self):
+        #se crea una nueva ventana
+        t = Toplevel(self.root)
+        t.wm_title("Instruciones")
+        #se inserta texto con Label
+        p1=Label(t,text="      ")
+        x= Label(t,text="Abrir: Permite ingresar una imagen en formato .jpg al canvas. \n"+
+        "Guardar: Permite exportar el canvas como imagen a un directorio dentro de nuestra computadora. \n"+
+        "Nuevo: Permite limpiar el canvas, borrando todos los elementos que se encuentren en este.\n"+
+        "Algoritmos DDA. \n"+
+        "    Línea: Permite crear una línea recta. Requiere dar click, arrastrar y soltar. El primero indica el punto inicial y el segundo el punto final. \n"+
+        "    Polígono: Permite crear una secuencia de líneas. Requiere dar click, arrastrar y soltar. Para cerrar el polígono, presione otro botón o presione el click derecho en el canvas. \n"+
+        "    Triángulo: Permite crear un triángulo. Requiere dos clicks, arrastrar y soltar. El primero, indica un punto, el segundo, indica otro punto y el tercero marca el último punto y cierra la figura. \n"+
+        "    Cuadrado: Permite crear cuadrados o rectángulos. Requiere dar click, arrastrar y soltar. El primero indica un punto y el segundo indica el punto opuesto, marcando las cuatro líneas de la figura. \n"+
+        "    Círculo: Permite crear circunferencias. Requiere dar click, arrastrar y soltar. El primero indica el centro (h,k) y el segundo determina el radio. \n"+
+        "Algoritmos de Bresenham. \n"+
+        "    Línea: Permite crear una línea recta. Requiere dar click, arrastrar y soltar. El primero indica el punto inicial y el segundo el punto final. \n"+
+        "    Polígono: Permite crear una secuencia de líneas. Requiere dar click, arrastrar y soltar. Para cerrar el polígono, presione otro botón o presione el click derecho en el canvas. \n"+
+        "    Triángulo: Permite crear un triángulo. Requiere dos clicks, arrastrar y soltar. El primero, indica un punto, el segundo, indica otro punto y el tercero marca el último punto y cierra la figura. \n"+
+        "    Cuadrado: Permite crear cuadrados o rectángulos. Requiere dar click, arrastrar y soltar. El primero indica un punto y el segundo indica el punto opuesto, marcando las cuatro líneas de la figura. \n"+
+        "    Círculo: Permite crear circunferencias. Requiere dar click, arrastrar y soltar. El primero indica el centro (h,k) y el segundo determina el radio. \n"+
+
+        "    Elipse: Permite crear una elipse. Requiere dos clicks, arrastrar y soltar. El primero indica en centro, el segundo el radio en ‘x’ y el tercero el radio en ‘y’. \n"+
+        "Dibujar: Permite dibujar en el canvas a mano alzada. Requiere que se deje presionado el mouse y se mueva. \n"+
+        "Borrador: Permite eliminar las partes rayadas del canvas. Requiere que se deje presionado el mouse y se mueva. \n"+
+        "Color: Permite cambiar el color actual y elegir uno a gusto. Requiere que se seleccione un color dentro de la ventana emergente. \n"+
+        "Rellenar: Permite rellenar un área del canvas. Requiere que se elija un color y se de click en el área a pintar. \n"+
+        "Coordenadas: Permite ingresar las coordenadas específicas de cualquier figura. Requiere que se elija la figura en la ventana emergente y se introduzcan los puntos pedidos. \n"+
+        "Seleccionar: Permite seleccionar un área del canvas para editar a gusto. Requiere dos clicks. El primero selecciona el punto inicial y el segundo el final, formando un rectángulo. \n"+
+        "Trasladar: Permite mover el área seleccionada a otra parte del canvas. Requiere que se haya seleccionado un área del canvas. Los valores ingresados moverán el área la cantidad de unidades que se hayan ingresado. \n"+
+        "Escalar: Permite escalar un área seleccionada en el canvas. Requiere que se haya seleccionado un área del canvas. Los valores ingresados multiplicarán los valores de ‘x’ y ‘y’ del área. \n"+
+        "Rotar: Permite rotar un área seleccionada en el canvas. Requiere que se haya seleccionado un área del canvas. El valor ingresado rotará el área seleccionada la cantidad de grados elegidos. \n"+
+        "Cortar: Permite eliminar los elementos que estén fuera de un área seleccionada del canvas. Requiere que se haya seleccionado un área del canvas. \n"+
+        "Duplicar: Permite duplicar un área seleccionada a otra parte del canvas. Requiere que se haya seleccionado un área del canvas. Los valores ingresados moverán el área duplicada la cantidad de unidades que se hayan ingresado. \n"+
+        "Espejo: Permite duplicar la actividad realizada en el canvas. Requiere que se active uno de los checkbox. El checkbox elegido duplicará la actividad en ‘x’ o en ‘y’. \n"
+        ,justify=LEFT)
+        p2=Label(t,text="      ")
+        p1.grid(row=0, column=0)
+        x.grid(row=1, column=1)
+        p1.grid(row=2, column=2)
+    #se seleciona un aria para transformar
+    def select(self):
+        #activa el boton
+        self.activate_button(self.select_button)
+        self.c.bind('<Button-1>', self.selecionar1)
+        self.c.bind('<B1-Motion>', self.selecionarf)
+        self.c.bind('<ButtonRelease-1>', self.selecionar2)   
+    #abre una ventana para insertar el angulo de rotacion
+    def rotate(self):
+        #se verifica si hay aria selecionada
+        if self.area1 and self.area2:
+            #se crea ventana
+            t = Toplevel(self.root)
+            t.wm_title("Rotar")
+            l = Label(t,text="Angulos")
+            #se crea cuadro para incertar valor
+            self.angulos = Entry(t, width=3)
+            self.angulos.insert(END, "0")
+            aceptar= Button(t, text="Rotar",command=self.rotar)
+            l.grid(row=0,column=0)
+            self.angulos.grid(row=0,column=1)
+            aceptar.grid(row=1,column=2)
+    #se rota el aria selecionada   
+    def rotar(self):
+        #agara el valor angulo de la ventana de rotacion
+        A=int(self.angulos.get())
+        #rota la imagen
+        sub_image = self.paper.crop(box=(self.area1[0],self.area1[1],self.area2[0],self.area2[1])).rotate(A, fillcolor=self.fondoCanvas,expand=True)
+        borar=self.fill(self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=borar)
+        self.paper.paste(sub_image, box=(self.area1[0],self.area1[1]))
+        self.lineImg = self.lineaDDA((0,0), (0,1), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+        self.deselecionar()
+    #borra la imagen vieja al transformarla
+    def fill(self,img): 
+        img.paste(self.fondoCanvas,box=(self.area1[0],self.area1[1],self.area2[0],self.area2[1]))
+        filledImg = ImageTk.PhotoImage(img)
+        return filledImg
+    #abre una ventana para insertar la escala
+    def escalate(self):
+        #se verifica si hay aria selecionada
+        if self.area1 and self.area2:
+            #se crea ventana
+            t = Toplevel(self.root)
+            t.wm_title("Escalar")
+            x= Label(t,text="X")
+            y= Label(t,text="Y")
+            l = Label(t,text="Escalar")
+            #se crea cuadros para incertar valor
+            self.tx = Entry(t, width=4)
+            self.ty = Entry(t, width=4)
+            self.tx.insert(END, "1")
+            self.ty.insert(END, "1")
+            aceptar= Button(t, text="Escalar",command=self.escalar)
+            l.grid(row=1,column=0)
+            x.grid(row=0,column=1)
+            y.grid(row=0,column=2)
+            self.tx.grid(row=1,column=1)
+            self.ty.grid(row=1,column=2)
+            aceptar.grid(row=2,column=3)
+    #se cambia el tamaño de la imagen selecionada
+    def escalar(self):
+        #agara los numero de la ventana
+        X=float(self.tx.get())
+        Y=float(self.ty.get())
+        basewidth=abs(self.area2[0]-self.area1[0])
+        hsize=abs(self.area2[1]-self.area1[1])
+        sub_image = self.paper.crop(box=(self.area1[0],self.area1[1],self.area2[0],self.area2[1]))
+        #multiplica el tamaño por los numero
+        img = sub_image.resize((int(round(basewidth*X)),int(round(hsize*Y))), Image.ANTIALIAS)
+        borar=self.fill(self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=borar)
+        self.paper.paste(img, box=(self.area1[0],self.area1[1]))
+        self.lineImg = self.lineaDDA((0,0), (0,1), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+        self.deselecionar()
+
+    #ventana para insertar los valores de traslacion
+    def translate(self):
+        #se verifica si hay area selecionada
+        if self.area1 and self.area2:
+            #se crea ventana
+            t = Toplevel(self.root)
+            t.wm_title("Trasladar")
+            x= Label(t,text="X")
+            y= Label(t,text="Y")
+            l = Label(t,text="Trasladar")
+            #se crean cuadro para insertar valores
+            self.tx = Entry(t, width=4)
+            self.ty = Entry(t, width=4)
+            self.tx.insert(END, "0")
+            self.ty.insert(END, "0")
+            aceptar= Button(t, text="Trasladar",command=self.trasladar)
+            l.grid(row=1,column=0)
+            x.grid(row=0,column=1)
+            y.grid(row=0,column=2)
+            self.tx.grid(row=1,column=1)
+            self.ty.grid(row=1,column=2)
+            aceptar.grid(row=2,column=3)
+    #se mueve la imagen selecionada    
+    def trasladar(self):
+        #recive los valores de la ventana
+        X=int(self.tx.get())
+        Y=int(self.ty.get())
+        sub_image = self.paper.crop(box=(self.area1[0],self.area1[1],self.area2[0],self.area2[1]))
+        borar=self.fill(self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=borar)
+        #pega la imagen en las pposicion X y Y relativo al inicio
+        self.paper.paste(sub_image, box=(self.area1[0]+X,self.area1[1]+Y))
+        self.lineImg = self.lineaDDA((0,0), (0,1), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+    #ventana para insertar los valores de duplicar
+    def dublpic(self):
+        #se verifica aria selecionada
+        if self.area1 and self.area2:
+            #se creaa ventana
+            t = Toplevel(self.root)
+            t.wm_title("Duplicar")
+            x= Label(t,text="X")
+            y= Label(t,text="Y")
+            l = Label(t,text="Duplicar a")
+            #se crea cuandros para insertar valores
+            self.tx = Entry(t, width=4)
+            self.ty = Entry(t, width=4)
+            self.tx.insert(END, "0")
+            self.ty.insert(END, "0")
+            aceptar= Button(t, text="Duplicar",command=self.duplicar)
+            l.grid(row=1,column=0)
+            x.grid(row=0,column=1)
+            y.grid(row=0,column=2)
+            self.tx.grid(row=1,column=1)
+            self.ty.grid(row=1,column=2)
+            aceptar.grid(row=2,column=3)
+    #se crea una copia de la imagen selecionada
+    def duplicar(self):
+        #recive valores de la ventana
+        X=int(self.tx.get())
+        Y=int(self.ty.get())
+        sub_image = self.paper.crop(box=(self.area1[0],self.area1[1],self.area2[0],self.area2[1]))
+        #se pega la imagen en las cordenada Xy Y relativas al inicion; no se borra la imagen vieja
+        self.paper.paste(sub_image, box=(self.area1[0]+X,self.area1[1]+Y))
+        self.lineImg = self.lineaDDA((0,0), (0,1), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+        self.deselecionar()
+    #ventana de selecion de espejo
+    def espejo(self):
+        #se crea ventana
+        t = Toplevel(self.root)
+        t.wm_title("Espejo")
+        #checkbox para activar el modo espejo en X y/o en Y
+        X = Checkbutton(t, text="Espejo en X", variable=self.espejox, onvalue=True, offvalue=False)
+        Y = Checkbutton(t, text="Espejo en y", variable=self.espejoy, onvalue=True, offvalue=False)
+        X.grid(row=0,column=0)
+        Y.grid(row=1,column=0)
+    #Se borra todo menos el area selecionada
+    def cortar(self):
+        if self.area1 and self.area2:
+            sub_image = self.paper.crop(box=(self.area1[0],self.area1[1],self.area2[0],self.area2[1]))
+            self.new()
+            self.paper.paste(sub_image, box=(self.area1[0],self.area1[1]))
+            self.lineImg = self.lineaDDA((0,0), (0,1), self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+            self.deselecionar()
+
+    #la herramienta default
+    def use_pen(self):
+        #activa el boton
+        self.activate_button(self.pen_button)
+        #se pinta si el boton1 esta precionado y moviendo
+        self.c.bind('<B1-Motion>', self.paint)
+        #se reinician los valores si se suelta el boton 1
+        self.c.bind('<ButtonRelease-1>', self.reset)
+    #la herramienta para hacer lineaDDA    
+    def use_line(self):
+        self.activate_button(self.line_button)
+        self.c.bind('<Button-1>', self.hlinea1)
+        self.c.bind('<B1-Motion>', self.hlineaf)
+        self.c.bind('<ButtonRelease-1>', self.hlinea2)   
+    #la herramienta para hacer PoligonosDDA
+    def use_poligono(self):
+        self.activate_button(self.poligon_button)
+        self.c.bind('<Button-1>', self.hpoligono1)
+        self.c.bind('<B1-Motion>', self.hpoligonof)
+        self.c.bind('<ButtonRelease-1>', self.hpoligono2)
+        self.c.bind('<Button-3>', self.detente)
+    #la herramienta para hacer TriangulosDDA
+    def use_triangulo(self):
+        self.activate_button(self.triangle_button)
+        self.x=0
+        self.c.bind('<Button-1>', self.htriangulo1)
+        self.c.bind('<B1-Motion>', self.htriangulof)
+        self.c.bind('<ButtonRelease-1>', self.htriangulo2)
+    #la herramienta para hacer CuadradosDDA
+    def use_cuadrado(self):
+        self.activate_button(self.square_button)
+        self.c.bind('<Button-1>', self.hcuadrado1)
+        self.c.bind('<B1-Motion>', self.hcuadradof)
+        self.c.bind('<ButtonRelease-1>', self.hcuadrado2)
+    #la herramienta para hacer CirculosDDA
+    def use_circulo(self):
+        self.activate_button(self.circle_button)
+        self.c.bind('<Button-1>', self.hcirculo1)
+        self.c.bind('<B1-Motion>', self.hcirculof)
+        self.c.bind('<ButtonRelease-1>', self.hcirculo2)
+    #la herramienta para hacer elipses
+    def use_elipse(self):
+        self.activate_button(self.elipse_button)
+        self.c.bind('<Button-1>', self.helipse1)
+        self.c.bind('<B1-Motion>', self.helipsef)
+        self.c.bind('<ButtonRelease-1>', self.helipse2)
+    
+    #abre una ventana para inserta cordenadas para las figuras primitivas
+    def choose_cordenadas(self):
+        #se crea ventana
+        x=0
+        self.activate_button(self.cordenadas_button)
+        t = Toplevel(self.root)
+        t.wm_title("Cordenadas" )
+        # se cra los labes y cuadro para insertar valores
+        self.cual=1
+        labelxc= Label(t, text="X")
+        labelxc.grid(row=1,column=2)
+        labely= Label(t, text="Y")
+        labely.grid(row=1,column=3)
+        
+        self.label1= Label(t,text="Punto1")
+        self.label1.grid(row=2,column=1)
+        self.input1= Entry(t,width=5)
+        self.input1.grid(row=2,column=2)
+        self.input2= Entry(t,width=5)
+        self.input2.grid(row=2,column=3)
+
+        self.label2= Label(t,text="Punto2")
+        self.label2.grid(row=3,column=1)
+        self.input3= Entry(t,width=5)
+        self.input3.grid(row=3,column=2)
+        self.input4= Entry(t,width=5)
+        self.input4.grid(row=3,column=3)
+
+        self.label3= Label(t,text="Punto3")
+        self.input5= Entry(t,width=5)
+        self.input6= Entry(t,width=5)
+        
+        #boton para insertar la figura
+        Aceptar_button2 = Button(t, text='Aceptar', command=self.hacer)
+        Aceptar_button2.grid(row=4, column=5)
+        # se cra los botones de selecion de figura
+        self.line_button2 = Button(t, text='Linea',command=self.lineaui)
+        self.line_button2.grid(row=0, column=0)
+
+        self.triangle_button2 = Button(t, text='Triangulo',command=self.trianguloui)
+        self.triangle_button2.grid(row=0, column=1)
+
+        self.square_button2 = Button(t, text='Cuadrado', command=self.cuadradoui)
+        self.square_button2.grid(row=0, column=2)
+
+        self.circle_button2 = Button(t, text='Círculo',command=self.circuloui)
+        self.circle_button2.grid(row=0, column=3)
+
+        self.elipse_button2 = Button(t, text='Elipse',command=self.elipseui)
+        self.elipse_button2.grid(row=0, column=4)
+        #se eligue linea como default
+        if x==0:
+            self.active_button2=self.line_button2
+            self.active_button2.config(relief=SUNKEN)
+            x=1
+    #se modifica la ventana de cordenadas
+    def lineaui(self):
+        self.active_button2.config(relief=RAISED)
+        self.line_button2.config(relief=SUNKEN)
+        self.active_button2 = self.line_button2
+        self.label1['text']="Punto1"
+        self.label2['text']="Punto2"
+        self.input4.grid(row=3,column=3)
+        self.input5.grid_remove()
+        self.input6.grid_remove()
+        self.label3.grid_remove()
+        self.cual=1
+
+    def trianguloui(self):
+        self.active_button2.config(relief=RAISED)
+        self.triangle_button2.config(relief=SUNKEN)
+        self.active_button2 = self.triangle_button2
+        self.label1['text']="Punto1"
+        self.label2['text']="Punto2"
+        self.input4.grid(row=3,column=3)
+        self.label3.grid(row=4,column=1)
+        self.input5.grid(row=4,column=2)
+        self.input6.grid(row=4,column=3)
+        self.cual=2
+    
+    def cuadradoui(self):
+        self.active_button2.config(relief=RAISED)
+        self.square_button2.config(relief=SUNKEN)
+        self.active_button2 = self.square_button2
+        self.label1['text']="Punto1"
+        self.label2['text']="Punto2"
+        self.input4.grid(row=3,column=3)
+        self.input5.grid_remove()
+        self.input6.grid_remove()
+        self.label3.grid_remove()
+        self.cual=3
+    
+    def circuloui(self):
+        self.active_button2.config(relief=RAISED)
+        self.circle_button2.config(relief=SUNKEN)
+        self.active_button2 = self.circle_button2
+        self.label1['text']="Centro"
+        self.label2['text']="Radio"
+        self.input5.grid_remove()
+        self.input6.grid_remove()
+        self.label3.grid_remove()
+        self.input4.grid_remove()
+        self.cual=4
+    
+    def elipseui(self):
+        self.active_button2.config(relief=RAISED)
+        self.elipse_button2.config(relief=SUNKEN)
+        self.active_button2 = self.elipse_button2
+        self.label1['text']="Centro"
+        self.label2['text']="Radios"
+        self.input4.grid(row=3,column=3)
+        self.input5.grid_remove()
+        self.input6.grid_remove()
+        self.label3.grid_remove()
+        self.cual=5
+    #se crea la figura geometrica dependiendo del boton eleguido
+    def hacer(self):
+        xc=int(self.input1.get())
+        yc=int(self.input2.get())
+        if xc>=self.anchoCanvas:
+            xc=self.anchoCanvas-1
+        if xc<0:
+            xc=0
+        if yc>=self.altoCanvas:
+            yc=self.altoCanvas-1
+        if yc<0:
+            yc=0
+        if self.cual==1:
+            x=int(self.input3.get())
+            y=int(self.input4.get())
+            if x>=self.anchoCanvas:
+                x=self.anchoCanvas-1
+            if x<0:
+                x=0
+            if y>=self.altoCanvas:
+                y=self.altoCanvas-1
+            if y<0:
+                y=0
+            self.lineImg = self.lineaDDA((xc,yc), (x,y), self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+
+        if self.cual==2:
+           
+            x2=int(self.input3.get())
+            y2=int(self.input4.get())
+            if x2>=self.anchoCanvas:
+                x2=self.anchoCanvas-1
+            if x2<0:
+                x2=0
+            if y2>=self.altoCanvas:
+                y2=self.altoCanvas-1
+            if y2<0:
+                y2=0
+            x3=int(self.input3.get())
+            y3=int(self.input4.get())
+            if x3>=self.anchoCanvas:
+                x3=self.anchoCanvas-1
+            if x3<0:
+                x3=0
+            if y3>=self.altoCanvas:
+                y3=self.altoCanvas-1
+            if y3<0:
+                y3=0
+            self.lineImg = self.lineaDDA((xc,yc), (x2,y2), self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+            self.lineImg = self.lineaDDA((x2,y2), (x3,y3), self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+            self.lineImg = self.lineaDDA((x3,y3), (xc,yc), self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+        if self.cual==3:
+         
+            x2=int(self.input3.get())
+            y2=int(self.input4.get())
+            if x2>=self.anchoCanvas:
+                x2=self.anchoCanvas-1
+            if x2<0:
+                x2=0
+            if y2>=self.altoCanvas:
+                y2=self.altoCanvas-1
+            if y2<0:
+                y2=0
+            self.lineImg = self.lineaDDA((xc,yc), (xc,y2), self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+            self.lineImg = self.lineaDDA((xc,yc), (x2,yc), self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+            self.lineImg = self.lineaDDA((x2,y2), (xc,y2), self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+            self.lineImg = self.lineaDDA((x2,y2), (x2,yc), self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+        if self.cual==4:
+            r=int(self.input3.get())
+            self.CirculoImg = self.circuloDDA(xc,yc, r, self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+            if self.espejox.get()==True:
+                sx=self.anchoCanvas-xc
+                self.CirculoImg = self.circuloDDA(sx,yc, r, self.color, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+            if self.espejoy.get()==True:
+                sy=self.altoCanvas-yc
+                self.CirculoImg = self.circuloDDA(xc,sy, r, self.color, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+            if self.espejox.get()==True and self.espejoy.get()==True:
+                sx=self.anchoCanvas-xc
+                sy=self.altoCanvas-yc
+                self.CirculoImg = self.circuloDDA(sx,sy, r, self.color, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        if self.cual==5:
+            rx=int(self.input3.get())
+            ry=int(self.input4.get())
+            self.ElipseImg = self.elipseDDA(rx,ry, xc,yc, self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+            if self.espejox.get()==True:
+                sx=self.anchoCanvas-xc
+                self.ElipseImg = self.elipseDDA(rx,ry, sx,yc, self.color, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+            if self.espejoy.get()==True:
+                sy=self.altoCanvas-yc
+                self.ElipseImg = self.elipseDDA(rx,ry, xc,sy, self.color, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+            if self.espejox.get()==True and self.espejoy.get()==True:
+                sx=self.anchoCanvas-xc
+                sy=self.altoCanvas-yc
+                self.ElipseImg = self.elipseDDA(rx,ry, sx,sy, self.color, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+
+    #se seleciona un color           
+    def choose_color(self):
+        #abre ventana para elegir color
+        colorelegido = askcolor(color=self.color)[0]
+        tuplacolor= map(int, colorelegido)
+        #se guarda elecion
+        self.color = tuple(tuplacolor)
+
+    #herramienta para hacer rellenos
+    def rellenar_figura(self):
+        self.activate_button(self.fill_button)
+        self.c.bind('<Button-1>', self.hrelleno)
+    #herramienta para borrar
+    def use_eraser(self):
+        self.activate_button(self.eraser_button)
+       # self.old_x = None
+       # self.old_y = None
+        #self.color = self.DEFAULT_COLOR
+        self.c.bind('<B1-Motion>', self.borrar)
+        self.c.bind('<ButtonRelease-1>', self.reset)
+    #herramienta para hacer lineasBresenham
+    def use_linebre(self):
+        self.activate_button(self.linebre_button)
+        self.c.bind('<Button-1>', self.hlineabre1)
+        self.c.bind('<B1-Motion>', self.hlineabref)
+        self.c.bind('<ButtonRelease-1>', self.hlineabre2)  
+    #herramienta para hacer PoligonosBresenham
+    def use_poligonobre(self):
+        self.activate_button(self.poligonbre_button)
+        self.c.bind('<Button-1>', self.hpoligonobre1)
+        self.c.bind('<B1-Motion>', self.hpoligonobref)
+        self.c.bind('<ButtonRelease-1>', self.hpoligonobre2)
+        self.c.bind('<Button-3>', self.detentebre)
+    #herramienta para hacer triangulosBresenham
+    def use_triangulobre(self):
+        self.activate_button(self.trianglebre_button)
+        self.x=0
+        self.c.bind('<Button-1>', self.htriangulobre1)
+        self.c.bind('<B1-Motion>', self.htriangulobref)
+        self.c.bind('<ButtonRelease-1>', self.htriangulobre2)
+    #herramienta para hacer cuadradosBresenham
+    def use_cuadradobre(self):
+        self.activate_button(self.squarebre_button)
+        self.c.bind('<Button-1>', self.hcuadradobre1)
+        self.c.bind('<B1-Motion>', self.hcuadradobref)
+        self.c.bind('<ButtonRelease-1>', self.hcuadradobre2)
+    #herramienta para hacer CirculosBresenham
+    def use_circulobre(self):
+        self.activate_button(self.circlebre_button)
+        self.c.bind('<Button-1>', self.hcirculobre1)
+        self.c.bind('<B1-Motion>', self.hcirculobref)
+        self.c.bind('<ButtonRelease-1>', self.hcirculobre2)
+    #activa el boton selecionado y renicia valores y binds
+    def activate_button(self, some_button):
+        #activa el boton selecionado
+        self.active_button.config(relief=RAISED)
+        some_button.config(relief=SUNKEN)
+        self.active_button = some_button
+        #quita funciones del mouse
+        self.c.unbind('<B1-Motion>')
+        self.c.unbind('<Button-1>')
+        self.c.unbind('<B1-Re>')
+        self.c.unbind('<Button-3>')
+        self.c.unbind('<ButtonRelease-1>')
+        #reinicia valores
+        self.x=0
+        self.deselecionar()
+        self.deten()
+        self.detenbre()
+    
+    #se cra el cuadro de selecion
+    #valores iniciale
+    def selecionar1(self, event):
+        if self.x==0:
+            self.area1=(event.x,event.y)
+            self.x=1
+    #imagen en tiempo real
+    def selecionarf(self, event):
+        paper = copy.copy(self.paper)
+        if self.x==1:
+            self.area2=(event.x,event.y)
+            paper = copy.copy(self.paper)
+            self.CuadradoImg = self.borde( self.area1, ( self.area1[0],self.area2[1]), paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+            self.CuadradoImg = self.borde(self.area1, ( self.area2[0],self.area1[1]), paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+            self.CuadradoImg = self.borde(self.area2, ( self.area2[0],self.area1[1]), paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+            self.CuadradoImg = self.borde(self.area2, ( self.area1[0],self.area2[1]), paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+            self.lableup(event.x, event.y)
+    #imagen final
+    def selecionar2(self, event):
+        paper = copy.copy(self.paper)
+        if self.x==1:
+            self.area2=(event.x,event.y)
+            paper = copy.copy(self.paper)
+            self.CuadradoImg = self.borde( self.area1, ( self.area1[0],self.area2[1]), paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+            self.CuadradoImg = self.borde(self.area1, ( self.area2[0],self.area1[1]), paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+            self.CuadradoImg = self.borde(self.area2, ( self.area2[0],self.area1[1]), paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+            self.CuadradoImg = self.borde(self.area2, ( self.area1[0],self.area2[1]), paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+            self.x=0
+
+    #reinicia los valores de celecion
+    def deselecionar(self):
+        self.area1=None
+        self.area2=None
+
+    #se crea la lineaDDa
+    #valores iniciale
+    def hlinea1(self, event):
+        self.lx= event.x
+        self.ly= event.y
+    #imagen en tiempo real
+    def hlineaf(self, event):
+        paper = copy.copy(self.paper)
+        self.lineImg = self.lineaDDA((self.lx,self.ly), (event.x,event.y), self.color, paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+        self.lableup(event.x, event.y)
+    #imagen final
+    def hlinea2(self, event):
+        self.lineImg = self.lineaDDA((self.lx,self.ly), (event.x,event.y), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+        self.lx= None
+        self.ly= None
+
+            
+    #se crea la lineaBresenham
+    def hlineabre1(self, event):
+        self.lx= event.x
+        self.ly= event.y
+    def hlineabref(self, event):
+        paper= copy.copy(self.paper)
+        self.lineImg = self.lineabre((self.lx,self.ly), (event.x,event.y), self.color, paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+        self.lableup(event.x, event.y)        
+    def hlineabre2(self, event):
+        self.lineImg = self.lineabre((self.lx,self.ly), (event.x,event.y), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+        self.lx= None
+        self.ly= None
+
+    #se crea la PoligonosBresenham
+    def hpoligonobre1(self, event):
+        if self.x==0:
+            self.px= event.x
+            self.py= event.y
+            self.ux= event.x
+            self.uy= event.y
+            self.x=1
+    def hpoligonobref(self, event):
+        paper=copy.copy(self.paper)
+        self.PoligonoImg = self.lineabre((self.px,self.py), (event.x,event.y), self.color, paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.PoligonoImg)
+        self.lableup(event.x, event.y)
+    def hpoligonobre2(self, event):
+        self.PoligonoImg = self.lineabre((self.px,self.py), (event.x,event.y), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.PoligonoImg)
+        self.px= event.x
+        self.py= event.y
+
+    #se crea la TriangulosBresenham      
+    def htriangulobre1(self, event):
+        if self.x==0:
+            self.px= event.x
+            self.py= event.y
+            self.ux= event.x
+            self.uy= event.y 
+            self.x=1           
+    def htriangulobref(self, event):
+        paper= copy.copy(self.paper)
+        if  self.x==1:
+            self.TrianguloImg = self.lineabre((self.px,self.py), (event.x,event.y), self.color, paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.TrianguloImg)
+            self.lableup(event.x, event.y)
+        elif self.x==2:
+            self.TrianguloImg = self.lineabre((self.px,self.py), (event.x,event.y), self.color, paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.TrianguloImg)
+            self.PoligonoImg = self.lineabre((event.x,event.y), (self.ux,self.uy), self.color, paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.PoligonoImg)
+            self.lableup(event.x, event.y)
+    def htriangulobre2(self, event):
+        if  self.x==1:
+            self.TrianguloImg = self.lineabre((self.px,self.py), (event.x,event.y), self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.TrianguloImg)
+            self.px= event.x
+            self.py= event.y
+            self.x=2
+        elif self.x==2:
+            self.TrianguloImg = self.lineabre((self.px,self.py), (event.x,event.y), self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.TrianguloImg)
+            self.px= event.x
+            self.py= event.y
+            self.detenbre()
+            self.x=0
+
+    #se crea la CuadradosBresenham
+    def hcuadradobre1(self, event):
+        self.lx= event.x
+        self.ly= event.y
+    def hcuadradobref(self, event):
+        paper= copy.copy(self.paper)
+        self.CuadradoImg = self.lineabre((self.lx,self.ly), (self.lx,event.y), self.color, paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.CuadradoImg = self.lineabre((self.lx,self.ly), (event.x,self.ly), self.color, paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.CuadradoImg = self.lineabre((event.x,event.y), (event.x,self.ly), self.color, paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.CuadradoImg = self.lineabre((event.x,event.y), (self.lx,event.y), self.color, paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.lableup(event.x, event.y)
+    def hcuadradobre2(self, event):
+        self.CuadradoImg = self.lineabre((self.lx,self.ly), (self.lx,event.y), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.CuadradoImg = self.lineabre((self.lx,self.ly), (event.x,self.ly), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.CuadradoImg = self.lineabre((event.x,event.y), (event.x,self.ly), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.CuadradoImg = self.lineabre((event.x,event.y), (self.lx,event.y), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.lx= None
+        self.ly= None
+
+    #se crea la CirculosBresenham
+    def hcirculobre1(self, event):        
+        self.lx= event.x
+        self.ly= event.y
+    def hcirculobref(self, event):
+        paper= copy.copy(self.paper)
+        radio= math.sqrt(math.pow(event.x - self.lx, 2) + math.pow(event.y - self.ly, 2))
+        self.CirculoImg = self.circulobre(self.lx,self.ly, radio, self.color, paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        self.lableup(event.x, event.y)
+        #Se crea extras dependiendo del espejo
+        if self.espejox.get()==True:
+            sx=self.anchoCanvas-self.lx
+            self.CirculoImg = self.circulobre(sx,self.ly, radio, self.color, paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        if self.espejoy.get()==True:
+            sy=self.altoCanvas-self.ly
+            self.CirculoImg = self.circulobre(self.lx,sy, radio, self.color, paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        if self.espejox.get()==True and self.espejoy.get()==True:
+            sx=self.anchoCanvas-self.lx
+            sy=self.altoCanvas-self.ly
+            self.CirculoImg = self.circulobre(sx,sy, radio, self.color, paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+    def hcirculobre2(self, event):
+        radio= math.sqrt(math.pow(event.x - self.lx, 2) + math.pow(event.y - self.ly, 2))
+        self.CirculoImg = self.circulobre(self.lx,self.ly, radio, self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        #Se crea extras dependiendo del espejo
+        if self.espejox.get()==True:
+            sx=self.anchoCanvas-self.lx
+            self.CirculoImg = self.circulobre(sx,self.ly, radio, self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        if self.espejoy.get()==True:
+            sy=self.altoCanvas-self.ly
+            self.CirculoImg = self.circulobre(self.lx,sy, radio, self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        if self.espejox.get()==True and self.espejoy.get()==True:
+            sx=self.anchoCanvas-self.lx
+            sy=self.altoCanvas-self.ly
+            self.CirculoImg = self.circulobre(sx,sy, radio, self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        self.lx= None
+        self.ly= None
+        
+    #se ciera poligonos y triangulos Bresenham
+    def detentebre(self,event):                
+            if self.px and self.py:        
+                self.PoligonoImg = self.lineabre((self.px,self.py), (self.ux,self.uy), self.color, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.PoligonoImg)
+                self.px= None
+                self.py= None
+                self.ux= None
+                self.uy= None
+                self.x=0
+    def detenbre(self):                
+            if self.px and self.py:        
+                self.PoligonoImg = self.lineabre((self.px,self.py), (self.ux,self.uy), self.color, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.PoligonoImg)
+                self.px= None
+                self.py= None
+                self.ux= None
+                self.uy= None
+                self.x=0
+            if self.lx and self.ly:
+                self.lx= None
+                self.ly= None
+                self.ux= None
+                self.uy= None
+
+    #se crea circulosDDa
+    def hcirculo1(self, event):        
+        self.lx= event.x
+        self.ly= event.y
+    def hcirculof(self, event):
+        paper= copy.copy(self.paper)
+        radio= math.sqrt(math.pow(event.x - self.lx, 2) + math.pow(event.y - self.ly, 2))
+        self.CirculoImg = self.circuloDDA(self.lx,self.ly, radio, self.color, paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        self.lableup(event.x, event.y)
+        #Se crea extras dependiendo del espejo
+        if self.espejox.get()==True:
+            sx=self.anchoCanvas-self.lx
+            self.CirculoImg = self.circuloDDA(sx,self.ly, radio, self.color, paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        if self.espejoy.get()==True:
+            sy=self.altoCanvas-self.ly
+            self.CirculoImg = self.circuloDDA(self.lx,sy, radio, self.color, paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        if self.espejox.get()==True and self.espejoy.get()==True:
+            sx=self.anchoCanvas-self.lx
+            sy=self.altoCanvas-self.ly
+            self.CirculoImg = self.circuloDDA(sx,sy, radio, self.color, paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+    def hcirculo2(self, event):
+        radio= math.sqrt(math.pow(event.x - self.lx, 2) + math.pow(event.y - self.ly, 2))
+        self.CirculoImg = self.circuloDDA(self.lx,self.ly, radio, self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        #Se crea extras dependiendo del espejo
+        if self.espejox.get()==True:
+            sx=self.anchoCanvas-self.lx
+            self.CirculoImg = self.circuloDDA(sx,self.ly, radio, self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        if self.espejoy.get()==True:
+            sy=self.altoCanvas-self.ly
+            self.CirculoImg = self.circuloDDA(self.lx,sy, radio, self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        if self.espejox.get()==True and self.espejoy.get()==True:
+            sx=self.anchoCanvas-self.lx
+            sy=self.altoCanvas-self.ly
+            self.CirculoImg = self.circuloDDA(sx,sy, radio, self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CirculoImg)
+        self.lx= None
+        self.ly= None
+        
+    #se crea PoligonosDDa                    
+    def hpoligono1(self, event):
+        if self.x==0:
+            self.px= event.x
+            self.py= event.y
+            self.ux= event.x
+            self.uy= event.y
+            self.x=1
+    def hpoligonof(self, event):
+        paper=copy.copy(self.paper)
+        self.PoligonoImg = self.lineaDDA((self.px,self.py), (event.x,event.y), self.color, paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.PoligonoImg)
+        self.lableup(event.x, event.y)
+    def hpoligono2(self, event):
+        self.PoligonoImg = self.lineaDDA((self.px,self.py), (event.x,event.y), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.PoligonoImg)
+        self.px= event.x
+        self.py= event.y
+          
+    #se crea TriangulosDDa
+    def htriangulo1(self, event):
+        if self.x==0:
+            self.px= event.x
+            self.py= event.y
+            self.ux= event.x
+            self.uy= event.y 
+            self.x=1           
+    def htriangulof(self, event):
+        paper= copy.copy(self.paper)
+        if  self.x==1:
+            self.TrianguloImg = self.lineaDDA((self.px,self.py), (event.x,event.y), self.color, paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.TrianguloImg)
+            self.lableup(event.x, event.y)
+        elif self.x==2:
+            self.TrianguloImg = self.lineaDDA((self.px,self.py), (event.x,event.y), self.color, paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.TrianguloImg)
+            self.PoligonoImg = self.lineaDDA((event.x,event.y), (self.ux,self.uy), self.color, paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.PoligonoImg)
+            self.lableup(event.x, event.y)
+    def htriangulo2(self, event):
+        if  self.x==1:
+            self.TrianguloImg = self.lineaDDA((self.px,self.py), (event.x,event.y), self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.TrianguloImg)
+            self.px= event.x
+            self.py= event.y
+            self.x=2
+        elif self.x==2:
+            self.TrianguloImg = self.lineabre((self.px,self.py), (event.x,event.y), self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.TrianguloImg)
+            self.px= event.x
+            self.py= event.y
+            self.deten()
+            self.x=0
+
+    #se cra elipse
+    def helipse1(self, event):
+        if  self.x==0:
+            self.ux= event.x
+            self.uy= event.y 
+            self.x=1
+    def helipsef(self, event):
+        paper=copy.copy(self.paper)
+        if self.x==1:
+            self.lx= abs(event.x-self.ux)
+            self.ElipseImg = self.elipseDDA(self.lx,1, self.ux,self.uy, self.color, paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+            self.lableup(event.x, event.y)
+            if self.espejox.get()==True:
+                sx=self.anchoCanvas-self.ux
+                self.ElipseImg = self.elipseDDA(self.lx,1, sx,self.uy, self.color, paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+            if self.espejoy.get()==True:
+                sy=self.altoCanvas-self.uy
+                self.ElipseImg = self.elipseDDA(self.lx,1, self.ux,sy, self.color, paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+            if self.espejox.get()==True and self.espejoy.get()==True:
+                sx=self.anchoCanvas-self.ux
+                sy=self.altoCanvas-self.uy
+                self.ElipseImg = self.elipseDDA(self.lx,1, sx,sy, self.color, paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+            
+
+        elif self.x==2:
+            self.ly= abs(event.y-self.uy)
+            self.ElipseImg = self.elipseDDA(self.lx, self.ly, self.ux,self.uy, self.color, paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+            self.lableup(event.x, event.y)
+            if self.espejox.get()==True:
+                sx=self.anchoCanvas-self.ux
+                self.ElipseImg = self.elipseDDA(self.lx, self.ly, sx,self.uy, self.color, paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+            if self.espejoy.get()==True:
+                sy=self.altoCanvas-self.uy
+                self.ElipseImg = self.elipseDDA(self.lx, self.ly, self.ux,sy, self.color, paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+            if self.espejox.get()==True and self.espejoy.get()==True:
+                sx=self.anchoCanvas-self.ux
+                sy=self.altoCanvas-self.uy
+                self.ElipseImg = self.elipseDDA(self.lx, self.ly, sx,sy, self.color, paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)      
+    def helipse2(self, event):
+        if self.x==1:
+            self.lx= abs(event.x-self.ux)
+            self.x=2
+
+        elif self.x==2:
+            self.ly= abs(event.y-self.uy)
+            self.ElipseImg = self.elipseDDA(self.lx,self.ly, self.ux,self.uy, self.color, self.paper)
+            self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+            if self.espejox.get()==True:
+                sx=self.anchoCanvas-self.ux
+                self.ElipseImg = self.elipseDDA(self.lx,self.ly, sx,self.uy, self.color, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+            if self.espejoy.get()==True:
+                sy=self.altoCanvas-self.uy
+                self.ElipseImg = self.elipseDDA(self.lx,self.ly, self.ux,sy, self.color, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+            if self.espejox.get()==True and self.espejoy.get()==True:
+                sx=self.anchoCanvas-self.ux
+                sy=self.altoCanvas-self.uy
+                self.ElipseImg = self.elipseDDA(self.lx,self.ly, sx,sy, self.color, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.ElipseImg)
+            self.ly=None
+            self.lx=None
+            self.uy=None
+            self.ux=None
+            self.x=0        
+
+    #se crea cuadradosDDa
+    def hcuadrado1(self, event):
+        self.lx= event.x
+        self.ly= event.y  
+    def hcuadradof(self, event):
+        paper= copy.copy(self.paper)
+        self.CuadradoImg = self.lineaDDA((self.lx,self.ly), (self.lx,event.y), self.color, paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.CuadradoImg = self.lineaDDA((self.lx,self.ly), (event.x,self.ly), self.color, paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.CuadradoImg = self.lineaDDA((event.x,event.y), (event.x,self.ly), self.color, paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.CuadradoImg = self.lineaDDA((event.x,event.y), (self.lx,event.y), self.color, paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.lableup(event.x, event.y)
+    def hcuadrado2(self, event):
+        self.CuadradoImg = self.lineaDDA((self.lx,self.ly), (self.lx,event.y), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.CuadradoImg = self.lineaDDA((self.lx,self.ly), (event.x,self.ly), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.CuadradoImg = self.lineaDDA((event.x,event.y), (event.x,self.ly), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.CuadradoImg = self.lineaDDA((event.x,event.y), (self.lx,event.y), self.color, self.paper)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.CuadradoImg)
+        self.lx= None
+        self.ly= None
+
+           
+    #se hace el relleno
+    def hrelleno(self, event):
+        #se llama el algoritmo mandando las cordenadas donse se preciono
+        self.RellenarImg = self.algoritmoRelleno(self.paper, (event.x, event.y), self.color)
+        self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.RellenarImg)
+        
+    #se ciera poligonos y triangulos DDA          
+    def detente(self,event):                
+            if self.px and self.py:        
+                self.PoligonoImg = self.lineaDDA((self.px,self.py), (self.ux,self.uy), self.color, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.PoligonoImg)
+                self.px= None
+                self.py= None
+                self.ux= None
+                self.uy= None
+        
+    def deten(self):                
+            if self.px and self.py:        
+                self.PoligonoImg = self.lineaDDA((self.px,self.py), (self.ux,self.uy), self.color, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.PoligonoImg)
+                self.px= None
+                self.py= None
+                self.ux= None
+                self.uy= None
+            if self.lx and self.ly:
+                self.lx= None
+                self.ly= None
+                self.ux= None
+                self.uy= None
+
+    #dibujar 
+    def paint(self, event):
+        #se verifica si se dibuja dentro del canvas
+        if event.x >=0 and event.x <=self.anchoCanvas-1 and event.y >=0 and event.y <=self.altoCanvas-1:
+            #se verifica si lx y ly tienen valor
+            if self.lx and self.ly:
+                #se crea una linea
+                self.lineImg = self.lineaDDA((self.lx,self.ly), (event.x,event.y), self.color, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+                #se actualisa las cordenadas
+                self.lableup(event.x, event.y)
+                self.lx= event.x
+                self.ly= event.y
+            else:
+                #se le dan valor a lx y ly
+                self.lx= event.x
+                self.ly= event.y
+    #borrar
+    def borrar(self, event):
+         #se verifica si se dibuja dentro del canvas
+        if event.x >=0 and event.x <=self.anchoCanvas-1 and event.y >=0 and event.y <=self.altoCanvas-1:
+            #se verifica si lx y ly tienen valor
+            if self.lx and self.ly:
+                #se cran varias lineas bara darle grosor al borador
+                self.lineImg = self.lineaDDA((self.lx,self.ly), (event.x,event.y), self.fondoCanvas, self.paper)
+                self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+                if event.x+1 >=0 and event.x+1 <=self.anchoCanvas-1 and event.y >=0 and event.y <=self.altoCanvas-1 and self.lx+1 >=0 and self.lx+1 <=self.anchoCanvas-1 and self.ly >=0 and self.ly <=self.altoCanvas-1:
+                    self.lineImg = self.lineaDDA((self.lx+1,self.ly), (event.x+1,event.y), self.fondoCanvas, self.paper)
+                    self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+                if event.x-1 >=0 and event.x-1 <=self.anchoCanvas-1 and event.y >=0 and event.y <=self.altoCanvas-1 and self.lx-1 >=0 and self.lx-1 <=self.anchoCanvas-1 and self.ly >=0 and self.ly <=self.altoCanvas-1:
+                    self.lineImg = self.lineaDDA((self.lx-1,self.ly), (event.x-1,event.y), self.fondoCanvas, self.paper)
+                    self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+                if event.x >=0 and event.x <=self.anchoCanvas-1 and event.y+1 >=0 and event.y+1 <=self.altoCanvas-1 and self.lx >=0 and self.lx <=self.anchoCanvas-1 and self.ly+1 >=0 and self.ly+1 <=self.altoCanvas-1:
+                    self.lineImg = self.lineaDDA((self.lx,self.ly+1), (event.x,event.y+1), self.fondoCanvas, self.paper)
+                    self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+                if event.x >=0 and event.x <=self.anchoCanvas-1 and event.y-1 >=0 and event.y-1 <=self.altoCanvas-1 and self.lx >=0 and self.lx <=self.anchoCanvas-1 and self.ly-1 >=0 and self.ly-1 <=self.altoCanvas-1:
+                    self.lineImg = self.lineaDDA((self.lx,self.ly-1), (event.x,event.y-1), self.fondoCanvas, self.paper)
+                    self.c.create_image((self.anchoCanvas / 2, self.altoCanvas / 2), image=self.lineImg)
+                 #se actualisa las cordenadas
+                self.lx= event.x
+                self.ly= event.y
+                self.lableup(event.x, event.y)
+            else:
+                #se le dan valor a lx y ly
+                self.lx= event.x
+                self.ly= event.y
+        
+    #cuando se suelta el lapiz o el borrador elimina los valores de inicion
+    def reset(self, event):
+        self.lx, self.ly = None, None
+    
+    #las cordenadas de mouse caundo se mueve en el canvas
+    def lable(self, event):
+        x=event.x
+        y=event.y
+        #se valida su posicion
+        if x>=self.anchoCanvas:
+            x=self.anchoCanvas-1
+        if y>=self.altoCanvas:
+            y=self.altoCanvas-1
+        # se le cambia el texto al label
+        self.labelx['text']="x:"+str(x)
+        self.labely['text']="y:"+str(y)
+    #las cordenadas de mouse caundo se mueve con las imagenes de iempo real
+    def lableup(self, x,y):
+        #se valida su posicion
+        if x>=self.anchoCanvas:
+            x=self.anchoCanvas-1
+        if y>=self.altoCanvas:
+            y=self.altoCanvas-1
+        # se le cambia el texto al label
+        self.labelx['text']="x:"+str(x)
+        self.labely['text']="y:"+str(y)
+    #Algoritmo para crear elipse
+    def elipseDDA(self,Rx,Ry,Xc,Yc,color,img):
+        #se le da valor Rx si es 0
+        if Rx==0:
+            Rx=1
+        #se inicialisa las variable
+        P1=(Ry*Ry)-(Rx*Rx)*Ry+(1/4)*(Rx*Rx)
+        X=0
+        Y=Ry
+        Xk=2*(Ry*Ry)*X
+        Yk=2*(Rx*Rx)*Y
+        #Ciclo hasta que Xk sea mayor a Yk
+        while(Xk <= Yk):
+            #Se pone pixel las cuatro partes del elipse
+            if Xc + X >=0 and Xc + X <=self.anchoCanvas-1 and Yc + Y >=0 and Yc + Y <=self.altoCanvas-1:
+                img.putpixel((int(round(Xc+X)), int(round(Yc+Y))), color)
+            if Xc - X >=0 and Xc - X <=self.anchoCanvas-1 and Yc + Y >=0 and Yc + Y <=self.altoCanvas-1:
+                img.putpixel((int(round(Xc-X)), int(round(Yc+Y))), color)
+            if Xc + X >=0 and Xc + X <=self.anchoCanvas-1 and Yc - Y >=0 and Yc - Y <=self.altoCanvas-1:
+                img.putpixel((int(round(Xc+X)), int(round(Yc-Y))), color)
+            if Xc - X >=0 and Xc - X <=self.anchoCanvas-1 and Yc - Y >=0 and Yc - Y <=self.altoCanvas-1:
+                img.putpixel((int(round(Xc-X)), int(round(Yc-Y))), color)
+            
+            X=X+1
+            #se prueba P1
+            if P1>=0:
+                Y=Y-1
+            if P1<0:
+                P1=P1+Xk+(Ry*Ry)
+            else:
+                P1=P1+Xk-Yk+(Ry*Ry)
+            Xk=2*(Ry*Ry)*X
+            Yk=2*(Rx*Rx)*Y
+        #Se crea segunda parte del elipse
+        P2=(Ry*Ry)*(X+1/2)*(X+1/2)+(Rx*Rx)*(Y-1)*(Y-1)-(Rx*Rx)*(Ry*Ry)
+        #ciclo hasta que Yk meno a cero
+        while(Yk>=0):
+            #Se pone pixel las cuatro partes del elipse
+            if Xc + X >=0 and Xc + X <=self.anchoCanvas-1 and Yc + Y >=0 and Yc + Y <=self.altoCanvas-1:
+                img.putpixel((int(round(Xc+X)), int(round(Yc+Y))), color)
+            if Xc - X >=0 and Xc - X <=self.anchoCanvas-1 and Yc + Y >=0 and Yc + Y <=self.altoCanvas-1:
+                img.putpixel((int(round(Xc-X)), int(round(Yc+Y))), color)
+            if Xc + X >=0 and Xc + X <=self.anchoCanvas-1 and Yc - Y >=0 and Yc - Y <=self.altoCanvas-1:
+                img.putpixel((int(round(Xc+X)), int(round(Yc-Y))), color)
+            if Xc - X >=0 and Xc - X <=self.anchoCanvas-1 and Yc - Y >=0 and Yc - Y <=self.altoCanvas-1:
+                img.putpixel((int(round(Xc-X)), int(round(Yc-Y))), color)
+            
+            Y=Y-1
+            #se prueba P2
+            if P2<=0:
+                X=X+1
+
+            if P2>0:
+                P2=P2-Yk+(Rx*Rx)
+            else:
+                P2=P2-Yk+Xk+(Rx*Rx)
+
+            Xk=2*(Ry*Ry)*X
+            Yk=2*(Rx*Rx)*Y
+        #se manda una imagen de regreso
+        lineImg = ImageTk.PhotoImage(img)
+        return lineImg
+    #Algoritmo para crear Lineas DDA
+    def lineaDDA(self, puntoInicial, puntoFinal, color, img):
+        #cordenadas x, y iniciales
+        xi=puntoInicial[0]
+        yi=puntoInicial[1]
+        #cordenadas x,y finales
+        xf=puntoFinal[0]
+        yf=puntoFinal[1]
+        #se valida que la cordenadas no esten fuera de rango
+        if xf>= self.anchoCanvas:
+            xf=self.anchoCanvas-1
+        if xf<0:
+            xf=0
+        if yf>=self.altoCanvas:
+            yf=self.altoCanvas-1
+        if yf<0:
+            yf=0
+        if xi>= self.anchoCanvas:
+            xi=self.anchoCanvas-1
+        if xi<0:
+            xi=0
+        if yi>=self.altoCanvas:
+            yi=self.altoCanvas-1
+        if yi<0:
+            yi=0
+        #diferenvia de los puntos inicial y final
+        dx=xf-xi
+        dy=yf-yi
+        #si no hay diferencia en x, es una liniea vertical
+        if dx == 0:
+            #se verifica si la linea es de ariba hacia abajo, o abajo hacia ariba
+            if dy>0:
+                yt=1
+            else:
+                yt=-1
+            #se inician X y Y
+            x=xi
+            y=yi
+            #ciclo hata que Y sea igual al Y final
+            while y!=yf:
+                    #se pone el pixel
+                    img.putpixel((int(x),int(y)), color)
+                    #se revisa si el modo espejoesta activo
+                    if self.espejox.get()==True:
+                        sx=self.anchoCanvas-x
+                        img.putpixel((int(sx),int(y)), color)
+                    if self.espejoy.get()==True:
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(x),int(sy)), color)
+                    if self.espejox.get()==True and self.espejoy.get()==True:
+                        sx=self.anchoCanvas-x
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(sx),int(sy)), color)
+                    #se le suma a y
+                    y+=yt
+        #si no hay diferencia en y, es una liniea horisontal
+        elif dy==0:
+            #se verifica si la linea es de izquierda hacia derecha, o derecha hacia izquierda
+            if dx>0:
+                xt=1
+            else:
+                xt=-1
+            #se inician X y Y
+            x=xi
+            y=yi
+            #ciclo hasta X sea igual a X final
+            while x!=xf:
+                    #se pone el pixel
+                    img.putpixel((int(x),int(y)), color)
+                    #se revisa si el modo espejoesta activo
+                    if self.espejox.get()==True:
+                        sx=self.anchoCanvas-x
+                        img.putpixel((int(sx),int(y)), color)
+                    if self.espejoy.get()==True:
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(x),int(sy)), color)
+                    if self.espejox.get()==True and self.espejoy.get()==True:
+                        sx=self.anchoCanvas-x
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(sx),int(sy)), color)
+                    # se le suma a X
+                    x+=xt
+        #si la linea no es recta
+        else:
+            #si la diferencia de X es mayo a la de Y
+            if abs(dx)>abs(dy):
+                #constante k
+                k=abs(dx)
+                #cuanto crece las variable cada ciclo
+                xt=dx/k
+                yt=dy/k
+                #se inician X y Y
+                x=xi
+                y=yi
+                #ciclo hasta que XyY sean igual al punto final
+                while x!=xf and y!=yf:
+                    #se pone punto
+                    img.putpixel((int(x),int(y)), color)
+                    #se revisa si el modo espejoesta activo
+                    if self.espejox.get()==True:
+                        sx=self.anchoCanvas-x
+                        img.putpixel((int(sx),int(y)), color)
+                    if self.espejoy.get()==True:
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(x),int(sy)), color)
+                    if self.espejox.get()==True and self.espejoy.get()==True:
+                        sx=self.anchoCanvas-x
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(sx),int(sy)), color)
+                    # se le suma a X y Y
+                    x+=xt
+                    y+=yt
+            #si la diferencia de Y es mayo a la de X
+            else:
+                #constante k
+                k=abs(dy)
+                #cuanto crece las variable cada ciclo
+                xt=dx/k
+                yt=dy/k
+                #se inician X y Y
+                x=xi
+                y=yi
+                #ciclo hasta que XyY sean igual al punto final
+                while x!=xf and y!=yf:
+                    #se pone punto
+                    img.putpixel((int(x),int(y)), color)
+                    #se revisa si el modo espejoesta activo
+                    if self.espejox.get()==True:
+                        sx=self.anchoCanvas-x
+                        img.putpixel((int(sx),int(y)), color)
+                    if self.espejoy.get()==True:
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(x),int(sy)), color)
+                    if self.espejox.get()==True and self.espejoy.get()==True:
+                        sx=self.anchoCanvas-x
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(sx),int(sy)), color)
+                    # se le suma a X y Y
+                    x+=xt
+                    y+=yt
+            
+        #se manda una imagen de regreso
+        lineImg = ImageTk.PhotoImage(img)
+        return lineImg
+    #Algoritmo para crear Lineas Bresenham
+    def lineabre(self, puntoInicial, puntoFinal, color, img):
+        #cordenadas x, y iniciales
+        xi=puntoInicial[0]
+        yi=puntoInicial[1]
+        #cordenadas x, y finales
+        xf=puntoFinal[0]
+        yf=puntoFinal[1]
+        #diferencias de las cordenadas iniciales y finales en XyY
+        dx=xf-xi
+        dy=yf-yi
+        p=2*dy-dx
+        #se valida que la cordenadas no esten fuera de rango
+        if xf>= self.anchoCanvas:
+            xf=self.anchoCanvas-1
+        if xf<0:
+            xf=0
+        if yf>=self.altoCanvas:
+            yf=self.altoCanvas-1
+        if yf<0:
+            yf=0
+        #si no hay diferencia en x, es una liniea vertical
+        if dx == 0:
+            #se verifica si la linea es de ariba hacia abajo, o abajo hacia ariba
+            if dy>0:
+                yt=1
+            else:
+                yt=-1
+            #se inicialisan XyY
+            x=xi
+            y=yi
+            #ciclo hasta que Y sea igual a Y final
+            while y!=yf:
+                     #se pone punto
+                    img.putpixel((int(x),int(y)), color)
+                    #se revisa si el modo espejoesta activo
+                    if self.espejox.get()==True:
+                        sx=self.anchoCanvas-x
+                        img.putpixel((int(sx),int(y)), color)
+                    if self.espejoy.get()==True:
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(x),int(sy)), color)
+                    if self.espejox.get()==True and self.espejoy.get()==True:
+                        sx=self.anchoCanvas-x
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(sx),int(sy)), color)
+                    y+=yt
+        #si no hay diferencia en y, es una liniea horisontal
+        elif dy==0:
+            #se verifica si la linea es de izquierda hacia derecha, o derecha hacia izquierda
+            if dx>0:
+                xt=1
+            else:
+                xt=-1
+            #se inicialisan XyY
+            x=xi
+            y=yi
+             #ciclo hasta que X sea igual a X final
+            while x!=xf:
+                    #se pone punto
+                    img.putpixel((int(x),int(y)), color)
+                    #se revisa si el modo espejo esta activo
+                    if self.espejox.get()==True:
+                        sx=self.anchoCanvas-x
+                        img.putpixel((int(sx),int(y)), color)
+                    if self.espejoy.get()==True:
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(x),int(sy)), color)
+                    if self.espejox.get()==True and self.espejoy.get()==True:
+                        sx=self.anchoCanvas-x
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(sx),int(sy)), color)
+                    x+=xt
+        #si la linea no es recta
+        else:
+            #calcular pendiente
+            m=abs(dy/dx)
+            #si la pendiente esta entre 0 y 1
+            if m<=1 and m>0:
+                #se verifica direcion de la pendiente
+                if dy>0:
+                    yt=1
+                else:
+                    yt=-1
+                if dx>0:
+                    xt=1
+                else:
+                    xt=-1
+                # se inicialisan X y Y
+                x=xi
+                y=yi
+                #ciclo hasta que XyY sean igual al punto final
+                while x!=xf and y!=yf:
+                    #se pone punto
+                    img.putpixel((int(x),int(y)), color)
+                    #se revisa si el modo espejo esta activo
+                    if self.espejox.get()==True:
+                        sx=self.anchoCanvas-x
+                        img.putpixel((int(sx),int(y)), color)
+                    if self.espejoy.get()==True:
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(x),int(sy)), color)
+                    if self.espejox.get()==True and self.espejoy.get()==True:
+                        sx=self.anchoCanvas-x
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(sx),int(sy)), color)
+                    x+=xt
+                    #se verifica P
+                    if(p<0):
+                        p+=2*abs(dy)
+                    else:
+                        y+=yt
+                        p+=2*abs(dy)-2*abs(dx)
+            #si la pendiente mayor a 1
+            elif m>1:
+                #se verifica direcion de la pendiente
+                if dy>0:
+                    yt=1
+                else:
+                    yt=-1
+                if dx>0:
+                    xt=1
+                else:
+                    xt=-1
+                # se inicialisan X y Y
+                x=xi
+                y=yi
+                #ciclo hasta que XyY sean igual al punto final
+                while x!=xf and y!=yf:
+                    #se pone punto
+                    img.putpixel((int(x),int(y)), color)
+                    #se revisa si el modo espejo esta activo
+                    if self.espejox.get()==True:
+                        sx=self.anchoCanvas-x
+                        img.putpixel((int(sx),int(y)), color)
+                    if self.espejoy.get()==True:
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(x),int(sy)), color)
+                    if self.espejox.get()==True and self.espejoy.get()==True:
+                        sx=self.anchoCanvas-x
+                        sy=self.altoCanvas-y
+                        img.putpixel((int(sx),int(sy)), color)
+                    y+=yt
+                    #se verifica P
+                    if(p<0):
+                        p+=2*abs(dx)
+                    else:
+                        x+=xt
+                        p+=2*abs(dx)-2*abs(dy)
+            
+        #se manda una imagen de regreso
+        lineImg = ImageTk.PhotoImage(img)
+        return lineImg
+    #Algoritmo para crear Circulos DDA
+    def circuloDDA(self, centrox, centroy, radio, color, img):
+        #se incialisan XyY
+        x = radio
+        y=0
+        #Cilco hasta que Y sea mallor a x
+        while(y <= x):
+            #se pone punto en las ocho seciones del circulo
+            if centrox + x >=0 and centrox + x <=self.anchoCanvas-1 and centroy + y >=0 and centroy + y <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox + x)), int(round(centroy + y))), color)
+            if centrox + y >=0 and centrox + y <=self.anchoCanvas-1 and centroy + x >=0 and centroy + x <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox + y)), int(round(centroy + x))), color)
+            if centrox - x >=0 and centrox - x <=self.anchoCanvas-1 and centroy + y >=0 and centroy + y <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox - x)), int(round(centroy + y))), color)
+            if centrox - y >=0 and centrox - y <=self.anchoCanvas-1 and centroy + x >=0 and centroy + x <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox - y)), int(round(centroy + x))), color)
+            if centrox + x >=0 and centrox + x <=self.anchoCanvas-1 and centroy - y >=0 and centroy - y <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox + x)), int(round(centroy - y))), color)
+            if centrox + y >=0 and centrox + y <=self.anchoCanvas-1 and centroy - x >=0 and centroy - x <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox + y)), int(round(centroy - x))), color)
+            if centrox - x >=0 and centrox - x <=self.anchoCanvas-1 and centroy - y >=0 and centroy - y <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox-x )), int(round(centroy - y))), color)
+            if centrox - y >=0 and centrox - y <=self.anchoCanvas-1 and centroy - x >=0 and centroy - x <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox - y)), int(round(centroy - x))), color)
+           
+
+            #se calcula nuevos valores
+            radio = radio - (y/radio)
+            x = round(radio)
+            y = y+1
+        #se manda una imagen de regreso
+        lineImg = ImageTk.PhotoImage(img)
+        return lineImg
+    #Algoritmo para crear Circulos Bresenham
+    def circulobre(self, centrox, centroy, radio, color, img):
+        #se inicialisa los valores
+        x = radio
+        y=0
+        e=0
+         #Cilco hasta que Y sea mallor a x
+        while(y <= x):
+            #se pone punto en las ocho seciones del circulo
+            if centrox + x >=0 and centrox + x <=self.anchoCanvas-1 and centroy + y >=0 and centroy + y <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox + x)), int(round(centroy + y))), color)
+            if centrox + y >=0 and centrox + y <=self.anchoCanvas-1 and centroy + x >=0 and centroy + x <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox + y)), int(round(centroy + x))), color)
+            if centrox - x >=0 and centrox - x <=self.anchoCanvas-1 and centroy + y >=0 and centroy + y <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox - x)), int(round(centroy + y))), color)
+            if centrox - y >=0 and centrox - y <=self.anchoCanvas-1 and centroy + x >=0 and centroy + x <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox - y)), int(round(centroy + x))), color)
+            if centrox + x >=0 and centrox + x <=self.anchoCanvas-1 and centroy - y >=0 and centroy - y <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox + x)), int(round(centroy - y))), color)
+            if centrox + y >=0 and centrox + y <=self.anchoCanvas-1 and centroy - x >=0 and centroy - x <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox + y)), int(round(centroy - x))), color)
+            if centrox - x >=0 and centrox - x <=self.anchoCanvas-1 and centroy - y >=0 and centroy - y <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox-x )), int(round(centroy - y))), color)
+            if centrox - y >=0 and centrox - y <=self.anchoCanvas-1 and centroy - x >=0 and centroy - x <=self.altoCanvas-1:
+                img.putpixel((int(round(centrox - y)), int(round(centroy - x))), color)
+           #se calcula nueva e
+            e=e+2*y+1
+            y = y+1
+            #se verifica e
+            if 2*e > 2*x-1:
+                x=x-1
+                e=e-2*x+1
+        #se manda una imagen de regreso
+        lineImg = ImageTk.PhotoImage(img)
+        return lineImg
+    #Algoritmo para rellenar figuras
+    def algoritmoRelleno(self, img, center,newColor):
+        #se guarda el color del pixel selecionada
+        oldColor = img.getpixel(center)
+        #si el color selecionado es igual al al usar no se hace nada
+        if oldColor == newColor:
+            filledImg = ImageTk.PhotoImage(img)
+            return filledImg
+        #se cre una lista
+        listSeed = []
+        listSeed.append(center)
+        #Ciclo mientras lista tenga cordenadas
+        while listSeed:
+            #se elimina la primera cordenada el la lista y se guardan
+            seed = listSeed.pop(0)
+            #se lee el color en las cordenadas
+            try:
+                seedColor = img.getpixel(seed)
+            except IndexError:
+                seedColor = None
+            #se verifica si el color leido es igual al color selecionado
+            if  seedColor == oldColor:
+                #se pinta el pixel del nuevo color
+                img.putpixel(seed, newColor)
+                #se agregan los 4 pixeles, que se encuentran dentro del canvas, alrededor de este a la lista
+                x, y = seed[0], seed[1]
+                if x+1>=0 and x+1 <=self.anchoCanvas-1 and y >=0 and y <=self.altoCanvas-1:
+                    listSeed.append((x+1, y))
+                if x-1>=0 and x-1 <=self.anchoCanvas-1 and y >=0 and y <=self.altoCanvas-1:
+                    listSeed.append((x-1, y))
+                if x>=0 and x <=self.anchoCanvas-1 and y+1 >=0 and y+1 <=self.altoCanvas-1:
+                    listSeed.append((x, y+1))
+                if x>=0 and x <=self.anchoCanvas-1 and y-1 >=0 and y-1 <=self.altoCanvas-1:
+                    listSeed.append((x, y-1))
+         #se manda una imagen de regreso
+        filledImg = ImageTk.PhotoImage(img)
+        return filledImg
+    #algoritmo para marcar la area selecionada
+    def borde(self, puntoInicial, puntoFinal, img):
+        #cordenadas x, y iniciales
+        xi=puntoInicial[0]
+        yi=puntoInicial[1]
+        #cordenadas x, y finales
+        xf=puntoFinal[0]
+        yf=puntoFinal[1]
+        #diferencias de las cordenadas iniciales y finales en XyY
+        dx=xf-xi
+        dy=yf-yi
+        #variables para cambiar el color de la linea
+        camb=1
+        color=self.color
+        #si la linea es vertical
+        if dx == 0:
+            #se verifica si la linea es de ariba hacia abajo, o abajo hacia ariba
+            if dy>0:
+                yt=1
+            else:
+                yt=-1
+            #se inicialisan XyY
+            x=xi
+            y=yi
+            #ciclo hasta que Y sea igual a Y final
+            while y!=yf:
+                #se cambia el color de la linea
+                if camb==0:
+                    color=self.fondoCanvas
+                    camb=1
+                else:
+                    color=self.color
+                    camb=0
+                #se pone el pixel
+                img.putpixel((int(x),int(y)), color)
+                y+=yt
+        #si la linea es horisontal
+        elif dy==0:
+            #se verifica si la linea es de izquierda hacia derecha, o derecha hacia izquierda
+            if dx>0:
+                xt=1
+            else:
+                xt=-1
+            #se inicialisa XyY
+            x=xi
+            y=yi
+             #ciclo hasta que X sea igual a X final
+            while x!=xf:
+                #se cambia el color de la linea
+                if camb==0:
+                    color=self.fondoCanvas
+                    camb=1
+                else:
+                    color=self.color
+                    camb=0
+                 #se pone el pixel
+                img.putpixel((int(x),int(y)), color)
+                x+=xt
+            
+        #algoritmo para marcar la area selecionada
+        lineImg = ImageTk.PhotoImage(img)
+        return lineImg
+ 
+#se incia el programa
+if __name__ == '__main__':
+    Paint()
+
